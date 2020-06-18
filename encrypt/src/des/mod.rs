@@ -14,11 +14,16 @@ pub struct DES {
 impl DES {
     pub fn new() -> Self {
         let mut rng = rand::thread_rng();
-        let key: u64 = rng.gen();
+        let key: u64 = rng.gen_range(0,i32::max_value() as u64);
         DES { key: key }
     }
     pub fn get_key(&self) -> u64 {
         self.key
+    }
+    pub fn decrypt_with_key(key:u64,value:Vec<u64>)->String{
+        let keys=des::generate_round_keys(key);
+        let decode=value.iter().map(|x| des::decrypt_block(*x, keys)).collect::<Vec<u64>>();
+        Self::u642string(decode)
     }
     pub fn encrypt(&self, value: String) -> Vec<u64> {
         let keys = des::generate_round_keys(self.key);
