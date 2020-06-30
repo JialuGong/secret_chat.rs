@@ -6,7 +6,7 @@ pub mod des;
 use rand::prelude::*;
 use std::str;
 
-
+const MAX_VALUE:u64=10000;
 
 pub struct DES {
     key: u64,
@@ -14,7 +14,7 @@ pub struct DES {
 impl DES {
     pub fn new() -> Self {
         let mut rng = rand::thread_rng();
-        let key: u64 = rng.gen_range(0,i32::max_value() as u64);
+        let key: u64 = rng.gen_range(0,MAX_VALUE);
         DES { key: key }
     }
     pub fn get_key(&self) -> u64 {

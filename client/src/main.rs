@@ -33,21 +33,24 @@ async fn process(mut stream: TcpStream, addr: &String) -> Result<(), Box<dyn Err
     // let mut lines=Framed::new(stream,LinesCodec::new());
     println!("Connecto to server : {}", &addr);
     let mut buf = String::new();
-    let mut stream_buf = BufReader::new(stream);
-    println!("I'm here");
-    stream_buf.read_line(&mut buf).await?;
+    
+    let (read_half,mut writer) = stream.into_split();
+    let mut reader = BufReader::new(read_half);
+    //let mut writer = BufWriter::new(write_half);
+
+    reader.read_line(&mut buf).await?;
     println!("key is {}", buf);
     let pub_key = str_to_key(buf);
     println!("pub key is {},{}", pub_key.0, pub_key.1);
-    stream_buf
-        .write_all(b"-- client receive the key\r\n")
-        .await?;
+    writer.write_all(b"-- client receive the key\r\n").await?;
     let message_coder = MessageCode::new(pub_key);
+    let message_coder_clone = message_coder.clone();
 
-    let (mut tx_in, mut rx_in) = mpsc::channel::<String>(800000);
-    let (mut tx_out, mut rx_out) = mpsc::channel::<String>(800000);
+    // let (mut tx_in, mut rx_in) = mpsc::channel::<String>(800000);
+    // let (mut tx_out, mut rx_out) = mpsc::channel::<String>(800000);
 
     //read from the console
+
     task::spawn(async move {
         loop {
             let mut line = String::new();
@@ -57,48 +60,49 @@ async fn process(mut stream: TcpStream, addr: &String) -> Result<(), Box<dyn Err
             })
             .await
             .unwrap();
-            tx_in.send(line.trim().to_string()).await.unwrap();
+            let data_encode = format!("{}\r\n", message_coder.encode(line));
+            writer.write_all(data_encode.as_bytes()).await.unwrap();
+            // tx_in.send(line.trim().to_string()).await.unwrap();
         }
     });
 
     //write to the console
-    task::spawn(async move {
-        loop {
-            match rx_out.recv().await {
-                Some(data) => {
-                    task::spawn_blocking(move || {
-                        println!("Message from client:\n{}", data);
-                    })
-                    .await
-                    .unwrap();
-                }
-
-                None => (),
-            }
-        }
-    });
 
     loop {
         let mut buf = String::new();
-        match stream_buf.read_line(&mut buf).await {
+        match reader.read_line(&mut buf).await {
             Ok(size) => {
-                if size > 2{
-                    println!("buf {}, size is {}", buf,size);
-                    let data_decode = message_coder.decode(buf);
-                    tx_out.send(data_decode).await?;
+                if size > 2 {
+                    println!("buf {}, size is {}", buf, size);
+                    let data_decode = message_coder_clone.decode(buf);
+                    println!("from server:\n {}", data_decode)
                 }
             }
             _ => {}
         }
-
-        match rx_in.recv().await {
-            Some(data) => {
-                println!("{}", data);
-                let data_encode = format!("{}\r\n", message_coder.encode(data));
-                stream_buf.write_all(data_encode.as_bytes()).await?;
-                //tx_out.send(data).await.unwrap();
-            }
-            None => {}
-        }
     }
+
+    // loop {
+    //     let mut buf = String::new();
+    //     match stream_buf.read_line(&mut buf).await {
+    //         Ok(size) => {
+    //             if size > 2 {
+    //                 println!("buf {}, size is {}", buf, size);
+    //                 let data_decode = message_coder.decode(buf);
+    //                 tx_out.send(data_decode).await?;
+    //             }
+    //         }
+    //         _ => {}
+    //     }
+
+    //     match rx_in.recv().await {
+    //         Some(data) => {
+    //             println!("{}", data);
+    //             let data_encode = format!("{}\r\n", message_coder.encode(data));
+    //             stream_buf.write_all(data_encode.as_bytes()).await?;
+    //             //tx_out.send(data).await.unwrap();
+    //         }
+    //         None => {}
+    //     }
+    // }
 }

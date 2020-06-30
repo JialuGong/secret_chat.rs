@@ -19,6 +19,7 @@ impl Message {
     }
 }
 
+#[derive(Clone,Copy)]
 pub struct MessageCode {
     key: (i64, i64),
 }
@@ -29,19 +30,19 @@ impl MessageCode {
     pub fn encode(&self, data: String) -> String {
         let des = DES::new();
         let des_key = des.get_key();
-        let des_key_code = RSA::decrypt(self.key, des_key as i64);
+        let des_key_code = RSA::encrypt(self.key, des_key as i64);
         let message = Message::new(des_key_code, des.encrypt(data));
         serde_json::to_string(&message).unwrap()
     }
     pub fn decode(&self, data: String) -> String {
         let message: Message = serde_json::from_str(&data).unwrap();
-        let des_key =RSA::encrypt(self.key, message.key);
+        let des_key =RSA::decrypt(self.key, message.key);
         DES::decrypt_with_key(des_key as u64, message.value)
     }
     pub fn encode_with_key(key:(i64,i64),data:String)->String{
         let des = DES::new();
         let des_key = des.get_key();
-        let des_key_code = RSA::decrypt(key, des_key as i64);
+        let des_key_code = RSA::encrypt(key, des_key as i64);
         let message = Message::new(des_key_code, des.encrypt(data));
         serde_json::to_string(&message).unwrap()
 
