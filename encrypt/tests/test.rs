@@ -13,7 +13,9 @@ mod tests {
     #[test]
     fn des_test(){
         let des=DES::new();
-        let value="hello world \n hello rust".to_string();
-        assert_eq!(value,des.decrypt(des.encrypt(value.clone())));
+        let value="ddd".to_string();
+        println!("key is {}, encode is {:?}",des.get_key(),des.encrypt(value.clone()));
+        println!("ecnode is {:?}",DES::encrypt_with_key(13482781, "hello".to_string()));
+        assert_eq!("hello",des.decrypt(des.encrypt(value.clone())));
     }
 }

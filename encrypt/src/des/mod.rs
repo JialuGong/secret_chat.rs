@@ -32,6 +32,13 @@ impl DES {
             .map(|x| des::encrypt_block(*x, keys))
             .collect::<Vec<u64>>()
     }
+    pub fn encrypt_with_key(key:u64,value:String)->Vec<u64>{
+        let keys = des::generate_round_keys(key);
+        Self::string2u64(value)
+            .iter()
+            .map(|x| des::encrypt_block(*x, keys))
+            .collect::<Vec<u64>>()
+    }
     pub fn decrypt(&self, v: Vec<u64>) -> String {
         let keys: [u64; 16] = des::generate_round_keys(self.key);
         let dec = v
